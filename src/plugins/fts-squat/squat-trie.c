@@ -1994,8 +1994,9 @@ squat_trie_lookup_real(struct squat_trie *trie, const char *str,
 		char_lengths[i] = bytes;
 		i += bytes;
 	}
-	data = squat_data_normalize(trie, (const unsigned char *)str,
-				    str_bytelen);
+	data = str_bytelen == 0 ? NULL :
+		squat_data_normalize(trie, (const unsigned char *)str,
+				     str_bytelen);
 
 	for (i = start = 0; i < str_bytelen && ret >= 0; i += char_lengths[i]) {
 		if (data[i] != '\0')
@@ -2012,7 +2013,7 @@ squat_trie_lookup_real(struct squat_trie *trie, const char *str,
 		start = i + char_lengths[i];
 	}
 
-	if (start == 0) {
+	if (str_bytelen > 0 && start == 0) {
 		if (str_charlen <= trie->hdr.partial_len ||
 		    trie->hdr.full_len > trie->hdr.partial_len) {
 			ret = squat_trie_lookup_data(trie, data, str_bytelen,
@@ -2034,7 +2035,7 @@ squat_trie_lookup_real(struct squat_trie *trie, const char *str,
 							char_lengths + start,
 							i - start);
 		}
-	} else if (str_bytelen > 0) {
+	} else if (str_bytelen > 0 && start !=0) {
 		/* string has nonindexed characters. finish the search. */
 		array_clear(definite_uids);
 		if (i != start && ret >= 0) {
@@ -2053,15 +2054,11 @@ squat_trie_lookup_real(struct squat_trie *trie, const char *str,
 	} else {
 		/* zero string length - list all root UIDs as definite
 		   answers */
-#if 0 /* FIXME: this code is never actually reached now. */
 		ret = squat_uidlist_get_seqrange(trie->uidlist,
 						 trie->root.uid_list_idx,
 						 &ctx.tmp_uids);
 		squat_trie_filter_type(type, &ctx.tmp_uids,
 				       definite_uids);
-#else
-		i_unreached();
-#endif
 	}
 	seq_range_array_remove_seq_range(maybe_uids, definite_uids);
 	squat_trie_add_unknown(trie, maybe_uids);
