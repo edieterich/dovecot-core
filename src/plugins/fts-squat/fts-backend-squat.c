@@ -127,7 +127,7 @@ fts_backend_squat_set_box(struct squat_fts_backend *backend,
 	if (mailbox_get_path_to(box, MAILBOX_LIST_PATH_TYPE_INDEX, &path) <= 0)
 		i_unreached(); /* fts already checked this */
 
-	mailbox_get_open_status(box, STATUS_UIDVALIDITY, &status);
+	mailbox_get_status(box, STATUS_UIDVALIDITY, &status);
 	if (storage->set->mmap_disable)
 		flags |= SQUAT_INDEX_FLAG_MMAP_DISABLE;
 	if (storage->set->mail_nfs_index)
