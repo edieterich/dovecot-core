@@ -428,6 +428,12 @@ int fts_backend_lookup_multi(struct fts_backend *backend,
 		p_array_init(&box_result->definite_uids, result->pool, 32);
 		p_array_init(&box_result->maybe_uids, result->pool, 32);
 		p_array_init(&box_result->scores, result->pool, 32);
+
+		array_clear(&box_result->definite_uids);
+		array_clear(&box_result->maybe_uids);
+		array_clear(&box_result->scores);
+		box_result->box = boxes[i];
+
 		if (backend->v.lookup(backend, boxes[i], args,
 				      flags, box_result) < 0)
 			return -1;
