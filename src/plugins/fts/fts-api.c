@@ -14,6 +14,8 @@ struct event_category event_category_fts = {
 	.name = "fts",
 };
 
+static struct fts_backend_update_context *update_ctx = NULL;
+
 static ARRAY(const struct fts_backend *) backends;
 
 void fts_backend_register(const struct fts_backend *backend)
@@ -123,6 +125,16 @@ int fts_backend_get_last_uid(struct fts_backend *backend, struct mailbox *box,
 		return 0;
 	}
 
+	/*
+	 * fts-squat assert-fails if during update of virtual mailbox the current backend box isn't properly dereferenced:
+	 * Panic: file squat-uidlist.c: line 551 (squat_uidlist_close): assertion failed: (!uidlist->building)
+	 */
+	if (update_ctx != NULL
+	    && update_ctx->backend_box != box
+	    && strcmp(update_ctx->backend->name, "squat") == 0) {
+		update_ctx->backend->v.update_set_mailbox(update_ctx, NULL);
+	}
+
 	return backend->v.get_last_uid(backend, box, last_uid_r);
 }
 
@@ -142,6 +154,7 @@ fts_backend_update_init(struct fts_backend *backend)
 	ctx = backend->v.update_init(backend);
 	if ((backend->flags & FTS_BACKEND_FLAG_NORMALIZE_INPUT) != 0)
 		ctx->normalizer = backend->ns->user->default_normalizer;
+	update_ctx = ctx;
 	return ctx;
 }
 
@@ -161,6 +174,7 @@ int fts_backend_update_deinit(struct fts_backend_update_context **_ctx)
 	int ret;
 
 	*_ctx = NULL;
+	update_ctx = NULL;
 
 	ctx->cur_box = NULL;
 	fts_backend_set_cur_mailbox(ctx);
